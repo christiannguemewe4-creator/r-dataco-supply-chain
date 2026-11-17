@@ -15,7 +15,7 @@ Projet d'analyse de données réalisé en **R de base** (sans package) et rédig
 ## Questions et résultats
 
 ### Q1 – Les retards dépendent-ils du mode de livraison ?
-- **54,8 %** des commandes sont livrées en retard.
+- **54,8 %** des lignes de commandes sont livrées en retard.
 - C'est le facteur principal. Standard Class respecte en moyenne son délai (4 jours prévus, 4 réels). First Class et Second Class livrent en près de **deux fois** le délai promis (1 → 2 jours, 2 → 3,99 jours).
 
 ### Q2 – Que devient le taux de retard sans les commandes annulées ?
