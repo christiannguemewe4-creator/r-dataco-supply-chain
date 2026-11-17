@@ -8,7 +8,7 @@ Projet d'analyse de données réalisé en **R de base** (sans package) et rédig
 
 ## Données
 
-- **Source :** jeu de données *DataCo Smart Supply Chain for Big Data Analysis* (Kaggle). Il n'est pas inclus dans ce dépôt à cause de sa taille (≈ 90 Mo) : [lien vers la page Kaggle]
+- **Source :** jeu de données *DataCo Smart Supply Chain for Big Data Analysis* (Kaggle). Il n'est pas inclus dans ce dépôt à cause de sa taille (≈ 90 Mo) : (https://www.kaggle.com/datasets/shashwatwork/dataco-smart-supply-chain-for-big-data-analysis)
 - **180 519 lignes et 53 colonnes.** Une ligne correspond à un article commandé, pas à une commande entière.
 - Fichier lu avec `fileEncoding = "latin1"`.
 
