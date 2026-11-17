@@ -1,0 +1,304 @@
+---
+title: "Analyse des retards de livraison – DataCo"
+author: "Christian Nguemewe"
+format:
+  html:
+    embed-resources: true
+editor: visual
+---
+
+## Chargement des données
+
+```{r}
+data <- read.csv("data/DataCoSupplyChainDataset.csv", fileEncoding = "latin1")
+```
+
+```{r}
+dim(data)
+```
+
+```{r}
+nrow(data)
+
+names(data)
+```
+
+```{r}
+head(data)
+```
+
+```{r}
+table(data$Delivery.Status)
+table(data$Late_delivery_risk)
+```
+
+```{r}
+View(data)
+```
+
+```{r}
+View(data[, 1:7])
+```
+
+```{r}
+petit <- data[, c("Days.for.shipping..real.", "Days.for.shipment..scheduled.", "Delivery.Status", "Shipping.Mode")]
+head(petit, 20)
+```
+
+```{r}
+table(data$Shipping.Mode, data$Delivery.Status)
+```
+
+```{r}
+round(prop.table(table(data$Shipping.Mode, data$Delivery.Status), 1) * 100, 1)
+```
+
+```{r}
+aggregate(
+  cbind(
+    prevus = Days.for.shipment..scheduled.,
+    reels  = Days.for.shipping..real.
+  ) ~ Shipping.Mode,
+  data = data,
+  FUN = function(x) round(mean(x), 2)
+
+)
+```
+
+```{r}
+aggregate(
+  cbind(
+    prevus = Days.for.shipment..scheduled.,
+    reels  = Days.for.shipping..real.
+  ) ~ Shipping.Mode,
+  data = data,
+  FUN = function(x) round(mean(x), 2)
+)
+
+```
+
+## Conclusion – Question 1 : d'où viennent les retards ?
+
+**Constat.** Sur 180 519 commandes, 54,83 % sont livrées en retard. Le taux varie fortement selon le mode d'envoi :
+
+| Mode d'envoi   | Délai promis | Délai réel | Taux de retard |
+|----------------|--------------|------------|----------------|
+| First Class    | 1 jour       | 2 jours    | 95,3 %         |
+| Second Class   | 2 jours      | 4 jours    | 76,6 %         |
+| Same Day       | 0 jour       | 0,5 jour   | 45,7 %         |
+| Standard Class | 4 jours      | 4 jours    | 38,1 %         |
+
+**Interprétation.** Les retards de First Class et Second Class ne viennent pas d'une livraison lente, mais d'une promesse irréaliste : ces deux modes livrent régulièrement en 2 et 4 jours. Same Day prouve qu'une livraison le jour même est possible, mais échoue presque une fois sur deux. Standard Class respecte son délai en moyenne, mais 38 % de ses envois restent en retard.
+
+**Recommandations.** 1. Annoncer 2 jours pour First Class et 4 jours pour Second Class, conformément aux délais réels observés. 2. Pour Same Day, conserver la promesse et rechercher pourquoi près d'une commande sur deux n'est pas livrée le jour même (heure de commande, région, entrepôt).
+
+*Limite : ces chiffres incluent les 7 754 commandes annulées ; ils seront recalculés sans elles.*
+
+### Question 2
+
+```{r}
+livrees <- data[data$Delivery.Status != "Shipping canceled", ]
+livrees
+```
+
+```{r}
+nrow(livrees)
+```
+
+```{r}
+table(livrees$Delivery.Status)
+```
+
+```{r}
+round(prop.table(table( livrees$Shipping.Mode, livrees$Delivery.Status ), 1) * 100, 1)
+```
+
+#### Interpretation
+
+Les commandes annulées ne faisaient pas partie des retards. En les retirant, le nombre de livraisons diminue mais le nombre de retards reste identique : le taux de retard augmente donc dans les quatre modes d’envoi .les nouveaux taux deviennent donc (57,3 % global ; First 100 %, Second 79,8 %, Same Day 47,9 %, Standard 39,8 %).
+
+### Question 3
+
+```{r}
+taux <- prop.table(table( livrees$Shipping.Mode, livrees$Delivery.Status ), 1) 
+```
+
+```{r}
+retards <- taux[, "Late delivery"]
+retards
+```
+
+```{r}
+barplot(retards * 100,
+        xlab = "Mode d’envoi",
+       ylab = "(%) taux de retards",
+       main = "Taux de retard par mode d’envoi",
+       col = "steelblue")
+```
+
+```{r}
+sameday <- livrees[livrees$Shipping.Mode == "Same Day", ]
+sameday
+```
+
+```{r}
+nrow(sameday)
+```
+
+```{r}
+taux1 <- prop.table(table(sameday$Market, sameday$Delivery.Status ), 1)
+```
+
+```{r}
+retards1 <- taux1[, "Late delivery"]
+retards1
+```
+
+## Same Day : la région explique-t-elle les retards ?
+
+Pour les commandes Same Day, le taux de retard est presque le même dans toutes les régions : Africa 46,4 %, Europe 48,8 %, LATAM 50,4 %, Pacific Asia 45,4 % et USCA 46,4 %. Il varie seulement entre 45 et 50 %.
+
+La région n'explique donc pas les retards Same Day. La cause est à chercher ailleurs (par exemple l'organisation interne), ce qui demande une autre analyse.
+
+```{r}
+taux2 <- prop.table(table(sameday$Department.Name, sameday$Delivery.Status ), 1)
+```
+
+```{r}
+retards_d <- taux2[, "Late delivery"]
+retards_d
+```
+
+```{r}
+table(sameday$Department.Name)
+```
+
+#### Same Day : le type de produit explique-t-il les retards ?
+
+Book Shop (76 %) et Pet Shop (60 %) ont des taux élevés, mais sur trop peu de commandes (42 et 38) pour être sûrs. C’est un signal à surveiller, pas une preuve. Les grands rayons sont tous autour de 47-48 %, donc le type de produit n’explique pas les retards Same Day.
+
+```{r}
+table(sameday$Customer.Segment)
+
+```
+
+```{r}
+taux3 <- prop.table(table(sameday$Customer.Segment, sameday$Delivery.Status ), 1)
+
+```
+
+```{r}
+retards_s <- taux3[, "Late delivery"]
+retards_s
+```
+
+#### Interpretation
+
+Pour les livraisons Same Day, le taux de retard varie peu selon le type de client : 48,6 % pour Consumer, 48,7 % pour Corporate et 44,4 % pour Home Office. Le segment de client n’explique donc pas les retards. Home Office est légèrement en dessous, mais près d’une commande sur deux y reste en retard.
+
+```{r}
+names(sameday)
+```
+
+```{r}
+head(sameday$order.date..DateOrders.)
+```
+
+```{r}
+sameday$date_cmd <- sameday$order.date..DateOrders <- as.Date(
+  sameday$order.date..DateOrders,
+  format = "%m/%d/%Y %H:%M"
+)
+```
+
+```{r}
+head(sameday$date_cmd)
+```
+
+```{r}
+sameday$mois <- format(sameday$date_cmd, "%m")
+```
+
+```{r}
+table(sameday$mois)
+```
+
+```{r}
+taux4 <- prop.table(table(sameday$mois, sameday$Delivery.Status ), 1)
+```
+
+```{r}
+retards_mois <- taux4[, "Late delivery"]
+retards_mois
+```
+
+#### Interpretation
+
+Pour les livraisons Same Day, le taux de retard varie de 43,6 % (juillet) à 52,1 % (août) selon le mois, et la plupart des mois se situent entre 46 et 50 %. Aucune saison ne se détache nettement : le mois n’explique donc pas les retards Same Day
+
+### Depense
+
+```{r}
+aggregate(
+  Benefit.per.order ~ Delivery.Status,
+  data = data,
+  FUN = function(x) round(mean(x), 2)
+
+
+)
+```
+
+#### Interpretation
+
+Le bénéfice par commande est presque identique quel que soit le statut de livraison (de 20,70 € à 22,71 €). Mais ce bénéfice est enregistré à la vente : même les commandes annulées en affichent un. Ces données ne permettent donc pas de mesurer le coût réel des retards
+
+```{r}
+retards <- subset(data, Delivery.Status == "Late delivery")
+retards
+```
+
+```{r}
+retards$ecart <- retards$Days.for.shipping..real. -
+                 retards$Days.for.shipment..scheduled.
+summary(retards$ecart)
+```
+
+```{r}
+moyennes <- tapply(retards$ecart, retards$Market,
+                   function(x) round(mean(x), 2))
+moyennes
+```
+
+```{r}
+sort(moyennes,decreasing = TRUE)
+```
+
+#### Iterpretation
+
+Parmi les commandes en retard, le retard moyen est presque identique dans tous les marchés (de 1,60 à 1,62 jour). La distance ou la région de destination n’explique donc pas la durée des retards. L’explication est plutôt à chercher dans l’organisation interne, en particulier le mode de livraison (voir Q1), mais ces données ne permettent pas de le démontrer directement.
+
+### Conclusion
+
+Sur 180 519 commandes, 54,8 % sont livrées en retard. Le mode de livraison est le principal facteur : First Class et Second Class livrent en près de deux fois le délai promis, alors que Standard Class le respecte en moyenne. Pour les livraisons Same Day, ni le mois ni le segment de clientèle n’expliquent les retards \[, ni la région\]. Parmi les commandes en retard, la durée moyenne du retard est presque identique dans tous les marchés (1,60 à 1,62 jour).\
+Le bénéfice par commande étant enregistré à la vente, ces données ne mesurent pas le coût réel des retards. Une prochaine analyse pourrait vérifier si les clients livrés en retard à leur première commande recommandent moins souvent.
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
